@@ -3,6 +3,570 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DSA 4-Month Tracker — 15 LPA Goal</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#07091A;color:#E2E8F0;min-height:100vh}
+.hdr{background:#0C1024;border-bottom:1px solid #1A2640;padding:12px 16px}
+.hdr-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.prog-bar{height:8px;background:#1A2640;border-radius:4px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,#38BDF8,#A78BFA,#F472B6);transition:width .5s}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:10px 16px}
+.stat{background:#0C1024;border:1px solid #1A2640;border-radius:10px;padding:10px 12px}
+.tabs{display:flex;gap:2px;border-bottom:1px solid #1A2640;padding:0 16px;flex-wrap:wrap}
+.tab{padding:8px 16px;background:transparent;color:#64748B;border:none;cursor:pointer;font-size:13px;font-weight:500;border-radius:8px 8px 0 0;transition:all .2s}
+.tab.on{background:#38BDF8;color:#000;font-weight:700}
+.content{padding:14px 16px 60px;max-width:1060px;margin:0 auto}
+.card{background:#0C1024;border:1px solid #1A2640;border-radius:12px;padding:14px;margin-bottom:12px}
+.vid{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid #1A2640;cursor:pointer;transition:all .2s;margin-bottom:8px;background:#101828}
+.vid:hover{border-color:#334155}
+.vid.done{opacity:.75}
+.cal{display:grid;grid-template-columns:repeat(7,1fr)}
+.cal-h{text-align:center;padding:8px 4px;font-size:11px;font-weight:700;background:#101828;border-bottom:1px solid #1A2640}
+.cell{min-height:82px;padding:5px 6px;border-right:1px solid #1A2640;border-bottom:1px solid #1A2640;cursor:pointer;transition:background .15s;font-size:12px;background:#0C1024}
+.cell:hover{background:#101828}
+.cell.today{background:#38BDF818!important;outline:2px solid #38BDF8;outline-offset:-2px}
+.cell.sel{outline:1px solid #818CF855;outline-offset:-2px}
+.cell.rest{background:#07091A!important;cursor:default}
+.btn{background:#101828;border:1px solid #1A2640;color:#E2E8F0;padding:6px 16px;border-radius:8px;cursor:pointer;font-size:14px;transition:background .15s}
+.btn:hover{background:#1A2640}
+.nav-bar{display:flex;align-items:center;gap:10px;background:#0C1024;border:1px solid #1A2640;border-radius:10px;padding:10px 12px;margin-bottom:12px}
+input[type=checkbox]{width:17px;height:17px;cursor:pointer;flex-shrink:0}
+textarea{width:100%;min-height:380px;background:#0C1024;border:1px solid #1A2640;border-radius:10px;padding:14px;color:#E2E8F0;font-size:13px;line-height:1.85;resize:vertical;font-family:monospace;outline:none}
+.mini-bar{height:4px;background:#1A2640;border-radius:2px;overflow:hidden;margin-top:4px}
+.mini-fill{height:100%;border-radius:2px;transition:width .5s}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.phases{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.sec-list{max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:4px}
+.sec-item{display:flex;align-items:center;gap:6px;padding:4px 7px;background:#101828;border-radius:5px;border:1px solid #1A2640;font-size:11px}
+.save-badge{position:fixed;bottom:16px;right:16px;background:#34D399;color:#000;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.save-badge.show{opacity:1}
+.streak-box{background:#0C1024;border:1px solid #1A2640;border-radius:10px;padding:12px;display:flex;align-items:center;gap:12px;margin-bottom:12px}
+@media(max-width:600px){.phases{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}.stats{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="save-badge" class="save-badge">✓ Saved</div>
+
+<script>
+// ─── CONSTANTS ───────────────────────────────────────────────────────────────
+const PC=["#38BDF8","#FBBF24","#A78BFA","#F472B6"];
+const PHASES=[
+  {id:1,n:"Foundations",          i:"🌱",vidS:1,  vidE:95, c:PC[0]},
+  {id:2,n:"Core DS & Algorithms", i:"⚡",vidS:96, vidE:240,c:PC[1]},
+  {id:3,n:"Advanced Algorithms",  i:"🚀",vidS:241,vidE:326,c:PC[2]},
+  {id:4,n:"System Design & CS",   i:"🏛️",vidS:327,vidE:454,c:PC[3]},
+];
+const SECS=[
+  {id:1, p:1,t:"Arrays & Hashing (Parts 1–3)",s:1,  e:3,  i:"🔢"},
+  {id:2, p:1,t:"Fixed Size Sliding Window",   s:4,  e:4,  i:"🪟"},
+  {id:3, p:1,t:"Variable Size Window",        s:5,  e:5,  i:"📐"},
+  {id:4, p:1,t:"Two Pointers (Parts 1–2)",    s:6,  e:7,  i:"👆"},
+  {id:5, p:1,t:"Recursion – Beginner",        s:8,  e:25, i:"🔄"},
+  {id:6, p:1,t:"Recursion – Intermediate",    s:26, e:44, i:"🔁"},
+  {id:7, p:1,t:"Time & Space – Theory",       s:45, e:62, i:"⏱️"},
+  {id:8, p:1,t:"Time & Space – Problems",     s:63, e:95, i:"📊"},
+  {id:9, p:2,t:"Backtracking & Recursion",    s:96, e:98, i:"↩️"},
+  {id:10,p:2,t:"Basic Binary Search",         s:99, e:101,i:"🔍"},
+  {id:11,p:2,t:"Binary Search on Answer",     s:102,e:104,i:"📐"},
+  {id:12,p:2,t:"Binary Search – Minimax",     s:105,e:108,i:"⚖️"},
+  {id:13,p:2,t:"Intervals & Sorting",         s:109,e:113,i:"📏"},
+  {id:14,p:2,t:"Quick Sort & Techniques",     s:114,e:125,i:"⚡"},
+  {id:15,p:2,t:"Merge Sort & Techniques",     s:126,e:138,i:"🔀"},
+  {id:16,p:2,t:"Linked Lists (Parts 1–5)",    s:139,e:154,i:"🔗"},
+  {id:17,p:2,t:"Stacks (Parts 1–6)",          s:155,e:175,i:"📚"},
+  {id:18,p:2,t:"Queues",                      s:176,e:177,i:"🚶"},
+  {id:19,p:2,t:"Trees (Parts 1–7)",           s:178,e:212,i:"🌳"},
+  {id:20,p:2,t:"Heaps – Basics + PS",         s:213,e:239,i:"⛰️"},
+  {id:21,p:2,t:"Segment Trees",               s:240,e:240,i:"🗂️"},
+  {id:22,p:3,t:"Tries",                       s:241,e:241,i:"🌐"},
+  {id:23,p:3,t:"Graphs Parts 1–9 + DSU",      s:242,e:281,i:"🕸️"},
+  {id:24,p:3,t:"Dynamic Programming",         s:282,e:314,i:"💡"},
+  {id:25,p:3,t:"Bit Manipulation",            s:315,e:315,i:"🔣"},
+  {id:26,p:3,t:"Greedy Algorithms",           s:316,e:325,i:"🎯"},
+  {id:27,p:3,t:"Tries – Advanced",            s:326,e:326,i:"🌲"},
+  {id:28,p:4,t:"LLD Parts 1–11",              s:327,e:338,i:"🏗️"},
+  {id:29,p:4,t:"HLD Parts 1–8",               s:339,e:346,i:"🏛️"},
+  {id:30,p:4,t:"DBMS 1 – Basics",             s:347,e:353,i:"🗄️"},
+  {id:31,p:4,t:"DBMS 2 – SQL Queries",        s:354,e:380,i:"📋"},
+  {id:32,p:4,t:"DBMS 3 – Normalisation",      s:381,e:392,i:"📐"},
+  {id:33,p:4,t:"DBMS 4 – Transactions",       s:393,e:414,i:"💳"},
+  {id:34,p:4,t:"DBMS 5 – NoSQL & MongoDB",    s:415,e:430,i:"🍃"},
+  {id:35,p:4,t:"Computer Networks",           s:431,e:454,i:"🌐"},
+];
+const VT={1:"Arrays & Hashing – Part 1",2:"Arrays & Hashing – Part 2",3:"Arrays & Hashing – Part 3",4:"Fixed Size Sliding Window",5:"Variable Size Window Problems",6:"Two Pointers – Part 1",7:"Two Pointers – Part 2",8:"Cute Story with Recursion",9:"Recursion with Factorial",10:"Defining Recursion",11:"Understanding PMI",12:"Practice Problem for PMI",13:"Solving Factorial with PMI",14:"Coding Factorial",15:"Understanding Call Stack",16:"Debugging Stack Trace",17:"Dry Running Factorial",18:"Factorial – Short Code",19:"Power Function",20:"Power Optimised",21:"Fibonacci",22:"Print Inc Dec",23:"Print Decreasing",24:"Sum of Digits",25:"Binary Strings – No Consecutive 1s",26:"Frog Jump 1",27:"Frog Jump 2",28:"Sum of Array",29:"Searching Element in Array",30:"Is Array Sorted",31:"Sum of Digits Recursively",32:"Printing Technique of Recursion",33:"Mazepath",34:"Subsequences",35:"Remove Occurrences of X",36:"Letter Combinations",37:"Pattern Using Recursion",38:"Power Sum",39:"Generate Parenthesis",40:"Check Palindrome – Advanced",41:"ACODE",42:"Friends Pairing",43:"Tiling Problem",44:"Family Structure",45:"Why Algorithm Efficiency Matters",46:"Measuring Algorithms vs Hardware",47:"Different Runtime of Same Code",48:"Multitasking in Single CPU Core",49:"Effects of Input Change",50:"Which Algorithm is Better?",51:"Rate of Growth",52:"Intro to Asymptotic Analysis",53:"Rate of Growth – Graph Visual",54:"Avoiding Lower Degree Terms",55:"Measuring Complexity",56:"Best | Avg | Worst Cases",57:"General Notion of Complexity",58:"Big O Notation",59:"Note On Big O",60:"Example Equation Big O",61:"Complexity Problem 1",62:"Tip For Daily Problem Solving",63:"T&S Problem 1",64:"T&S Problem 2",65:"T&S Problem 3",66:"T&S Note",67:"T&S Problem 4",68:"T&S Problem 5",69:"T&S Problem 5 Cont.",70:"T&S Problem 6",71:"T&S Problem 7",72:"T&S Problem 8",73:"T&S Problem 9",74:"T&S Problem 10",75:"T&S Problem 11",76:"T&S Problem 12",77:"T&S Problem 12 Cont.",78:"T&S Problem 13",79:"Best Case Analysis 1",80:"Best Case Analysis 2",81:"Avg Case Analysis",82:"Recursive Code Time Complexity",83:"Recursive Problem 1",84:"Recursive Problem 1 Pt2",85:"Recursive Problem 2",86:"Recursive Problem 3",87:"Recursive Problem 4",88:"Space Complexity",89:"Merge Two Sorted Arrays",90:"Space Complexity Recursive",91:"Practice 1",92:"Amortized Analysis",93:"Amortized Analysis Part 2",94:"Amortized with Arrays",95:"Amortized with Arrays Part 2",96:"Introduction to Backtracking",97:"Word Search Problem",98:"N Queens Problem",99:"Single Element in Sorted Array",100:"Find Peak Element",101:"Find First and Last Element",102:"Square Root Problem",103:"Very Easy Task",104:"Painter Partition",105:"Minimax Problem 1",106:"Minimax Problem 2",107:"Minimax Problem 3",108:"Minimax Problem 4",109:"Intervals Problem 1",110:"Intervals Problem 2",111:"Intervals Problem 3",112:"Intervals Problem 4",113:"Intervals Problem 5",114:"Randomisation in Algorithms",115:"Partition Algorithm",116:"Partition Pseudo Code",117:"Analysis of Quicksort",118:"Implementing Partition",119:"Implementing Quicksort",120:"Time Complexity of Quicksort",121:"Getting the Best Pivot",122:"Deriving Quicksort Time Complexity",123:"Order Statistics",124:"Quick Select Algorithm",125:"BFPRT Algorithm",126:"Intro to Merge Sort",127:"Merge Two Sorted Arrays Code",128:"Understanding Merge Sort",129:"Merge Sort Code",130:"Space Complexity of Merge Sort",131:"Properties of Merge Sort",132:"Why Divide in Factor of 2",133:"Programming Paradigms",134:"Divide and Conquer",135:"DnC Recurrence",136:"Deriving Master Theorem",137:"Merge Sort Problem 1",138:"Merge Sort Problem 1 Code",139:"LL Mindmap and Patterns",140:"Linked List Part 1",141:"Linked List Part 2",142:"LL3 Problem 1",143:"LL3 Problem 2",144:"LL3 Problem 3",145:"LL3 Problem 4",146:"LL3 Problem 5",147:"LL4 Lesson 1",148:"LL4 Lesson 2",149:"LL4 Lesson 3",150:"LL4 Lesson 4",151:"LL5 Lesson 1",152:"LL5 Lesson 2",153:"LL5 Lesson 3",154:"LL Doubt Class",155:"Different Patterns for Stack",156:"Stacks Part 1",157:"Stacks P2 – Problem 1",158:"Stacks P2 – Problem 2",159:"Stacks P2 – Problem 3",160:"Stacks P3 – Problem 1",161:"Stacks P3 – Problem 2",162:"Stacks P3 – Problem 3",163:"Stacks P3 – Problem 4",164:"Intro to Expressions",165:"Stacks P4 – Q1",166:"Stacks P4 – Q2",167:"Stacks P4 – Q3",168:"Stacks P4 – Q4",169:"Stacks P5 – Problem 1",170:"Stacks P5 – Problem 2",171:"Stacks P5 – Problem 3",172:"Stacks P5 – Problem 4",173:"Stacks P5 – Problem 5 (P1)",174:"Stacks P5 – Problem 5 (P2)",175:"Stacks Part 6",176:"Queue Problems 1–4",177:"Queue Problem 5",178:"Different Patterns for Trees",179:"Trees P1",180:"Trees P2",181:"Trees P3",182:"Trees P4",183:"Trees P5",184:"Trees P6",185:"Trees P7",186:"Trees Med-Hard P1",187:"Trees Med-Hard P2",188:"Trees Med-Hard P3",189:"Trees Med-Hard P4",190:"Trees Med-Hard P5",191:"Trees-3 P1",192:"Trees-3 P2",193:"Trees-3 P3",194:"Trees-3 P4",195:"Trees-4 P1",196:"Trees-4 P2",197:"Trees-4 P3",198:"Trees-4 P4",199:"Trees-5 P1",200:"Trees-5 P2",201:"Trees-5 P3",202:"Trees-5 P4",203:"Trees-5 P5",204:"Trees-5 P6",205:"Trees-6 P1",206:"Trees-6 P2",207:"Trees-6 P3",208:"Trees-6 P4",209:"Trees-6 P5",210:"Trees-6 P6",211:"Trees-7 P1",212:"Trees-7 P2",213:"Intro to Priority Queue",214:"Observations on Node Count",215:"Insertion – Up Heapify",216:"Removing – Down Heapify",217:"Remove Any Element from Heap?",218:"Representing Heaps via Arrays",219:"Coding Heaps in C++",220:"Kth Largest Element",221:"Convert Array to Heap",222:"Coding Heap – Array in C++",223:"Heap Sort",224:"Running Median",225:"Coding Running Median",226:"Heaps-1 P1",227:"Heaps-1 P2",228:"Heaps-1 P3",229:"Heaps-1 P4",230:"Heaps-2 P1",231:"Heaps-2 P2",232:"Heaps-2 P3",233:"Heaps-2 P4",234:"Heaps-3 P1",235:"Heaps-3 P2",236:"Heaps-3 P3",237:"Design Twitter",238:"Heaps-5",239:"Heaps-6",240:"Segment Trees",241:"Tries Introduction",242:"What Are Graphs?",243:"Most Important Graph Terminologies",244:"Graph Representations",245:"Connected Components – Theory",246:"Graph Implementation",247:"Graph Traversal DFS",248:"Graph Traversal BFS",249:"Code – Connected Components",250:"Graph P1",251:"Graph P2",252:"Graph P3",253:"Graph P4",254:"Graph P5",255:"Graph P6",256:"Graph P7 – Part 1",257:"Graph P7 – Part 2",258:"Matrix DFS/BFS P1",259:"Matrix DFS/BFS P2",260:"Matrix DFS/BFS P3",261:"Matrix DFS/BFS P4",262:"Matrix DFS/BFS P5",263:"Matrix DFS/BFS P6",264:"Matrix DFS/BFS P7",265:"Intro to Graph Coloring",266:"Bipartite Graph",267:"Chromatic Numbers of Cyclic Graphs",268:"MST Lesson 1",269:"MST Lesson 2",270:"MST Lesson 3",271:"Topological Sort – Kahn's Algorithm",272:"PostOrder DFS Algorithm",273:"Graph Mixed P1",274:"Graph Mixed P2",275:"Graph Mixed P3",276:"Graph Mixed P4",277:"DSU Intro",278:"Union by Size",279:"Union By Rank",280:"Path Compression",281:"Coding DSU",282:"Intro to DP",283:"Why DP?",284:"Optimising Fibonacci",285:"Storage in DP",286:"Types of DP Problems",287:"How to Identify DP",288:"State of a Subproblem",289:"Dry Run DP Solution",290:"Dry Run DP Solution 2",291:"Coding DP Solution",292:"Bottom-up DP",293:"Space Optimisation on Bottom-up DP",294:"DP PS1 – P1",295:"DP PS1 – P1 Code",296:"DP PS1 – P2",297:"DP PS1 – P3",298:"DP PS2 – P1",299:"DP PS2 – P2",300:"DP PS2 – P3",301:"DP PS2 – P4",302:"DP PS3 – P1",303:"DP PS3 – P2",304:"DP PS3 – P3",305:"DP PS3 – P4",306:"DP PS3 – P5",307:"DP PS3 – P6",308:"DP PS3 – P7",309:"DP PS4 – P1",310:"DP PS4 – P1 Tabulation",311:"DP PS4 – P2",312:"DP PS5",313:"DP PS6",314:"DP PS7",315:"Bit Manipulation",316:"Greedy L1",317:"Greedy L2",318:"Greedy L3",319:"Greedy L4",320:"Greedy L5",321:"Greedy L6",322:"Greedy L7",323:"Greedy L8",324:"Greedy L9",325:"Greedy L10",326:"Tries Advanced",327:"SRP – Single Responsibility",328:"OCP – Open Closed Principle",329:"Abstract Classes & Interfaces",330:"LSP – Liskov Substitution",331:"ISP & DIP Principles",332:"Builder Pattern",333:"Builder Pattern 2",334:"Adapter Pattern L1",335:"Adapter Pattern L2",336:"LLD 9",337:"Factory & Abstract Factory",338:"LLD 11",339:"Intro to HLD – Vertical Scaling",340:"Load Balancing & Horizontal Scaling",341:"Designing a Rating System",342:"Consistent Hashing",343:"CAP Theorem – DB Reliability",344:"DB Replication & Sharding",345:"Writing Good Design Docs",346:"Uber & Swiggy Design",347:"Intro to Databases",348:"File Systems",349:"What is Databases",350:"What is DBMS",351:"What is SQL",352:"Features of DBMS",353:"RDBMS",354:"Installing MySQL",355:"REPL",356:"Imperative vs Declarative",357:"Creating DB",358:"Creating Tables",359:"INSERT SELECT WHERE DELETE UPDATE",360:"LIKE Query",361:"ORDER BY",362:"LIMIT and OFFSET",363:"Handy Queries",364:"JOINS Basic",365:"JOINS Types",366:"JOINS Multiple Tables",367:"MySQL Workbench",368:"ALTER TABLE",369:"DISTINCT Query",370:"Aggregation Queries",371:"GROUP BY",372:"HAVING",373:"Workbench",374:"SQL PS1",375:"SQL PS2",376:"SQL PS3",377:"SQL Note",378:"SQL PS4",379:"SQL PS5",380:"Union and Views",381:"Intro to Normalisation",382:"Database Schema",383:"Functional Dependency",384:"Axioms",385:"DB Keys",386:"Numerical on DBMS",387:"What is Normalisation",388:"1NF",389:"2NF",390:"3NF",391:"Practice Normalisation",392:"DB Design",393:"Intro to DB Transaction",394:"Intermediate State in Transaction",395:"Introduction to ACID",396:"Atomicity",397:"Consistency",398:"Isolation",399:"Durability",400:"Where Transactions Go Wrong",401:"WW-RW-WR Conflicts",402:"How DBs Ensure Atomicity",403:"Atomicity for MySQL",404:"How DBs Handle Isolation",405:"Read Uncommitted Isolation",406:"Read Committed Isolation",407:"Repeatable Reads Isolation",408:"Serialisable Isolation",409:"How DBs Ensure Durability",410:"How Consistency Works Internally",411:"InnoDB Introduction",412:"MySQL Architecture",413:"DBMS Transaction L21",414:"DBMS Transaction Note",415:"RDBMS vs NoSQL Comparison",416:"How MongoDB Stores Data",417:"Revising Documents & Collections",418:"Basic MongoDB Revision",419:"Deleting Records",420:"Updating Records",421:"Updating Records 2",422:"MongoDB Operators",423:"MongoDB Operators 2",424:"Introduction to Indexes",425:"Execution Stats and Indexes",426:"Optimisations Using Indexes",427:"Indexes for Strings",428:"Indexes for Strings 2",429:"Pagination",430:"Aggregation Pipelines",431:"Introduction to Computer Networks",432:"History of Internet",433:"Terminologies in CN",434:"Access Network and DSL",435:"Protocol Stack – OSI and TCP",436:"Intro to Application Layer",437:"Details – Application Layer",438:"HTTP 1",439:"HTTP 2",440:"HTTP 3",441:"Cookies",442:"SMTP",443:"POP and IMAP",444:"DNS",445:"Torrent",446:"Transport Layer Responsibilities",447:"Reliable Data Transfer",448:"TCP",449:"DNS (Transport Layer)",450:"IP Addressing",451:"Classful Addressing",452:"Classless Addressing",453:"IPv6",454:"Web Sockets"};
+
+function gt(id){return VT[id]||'Lecture '+id;}
+const START_DS='2026-03-14';
+const END_DS='2026-07-13';
+const TOTAL_DAYS=122;
+const DN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+// ─── SCHEDULE BUILD ───────────────────────────────────────────────────────────
+function buildSchedule(){
+  var r=[],vi=0,sd=0;
+  var av=[];
+  SECS.forEach(function(s){for(var v=s.s;v<=s.e;v++)av.push({id:v,sec:s});});
+  for(var d=0;d<TOTAL_DAYS;d++){
+    var dt=new Date(START_DS+'T12:00:00');
+    dt.setDate(dt.getDate()+d);
+    var dow=dt.getDay();
+    var ds=dt.getFullYear()+'-'+pad(dt.getMonth()+1)+'-'+pad(dt.getDate());
+    var isR=dow===0,vs=[];
+    if(!isR&&vi<av.length){sd++;var cnt=Math.min(sd<=34?5:4,av.length-vi);vs=av.slice(vi,vi+cnt);vi+=cnt;}
+    var ph=vs.length>0?vs[0].sec.p:(r.length>0?r[r.length-1].phase:1);
+    r.push({ds:ds,day:d+1,dow:dow,isR:isR,vs:vs,phase:ph});
+  }
+  return r;
+}
+function pad(n){return String(n).padStart(2,'0');}
+var SCH=buildSchedule();
+
+// ─── TODAY (REAL CLOCK — updates every open) ──────────────────────────────────
+function getToday(){
+  var t=new Date();
+  var ds=t.getFullYear()+'-'+pad(t.getMonth()+1)+'-'+pad(t.getDate());
+  if(ds<START_DS)return START_DS;
+  if(ds>END_DS)return END_DS;
+  return ds;
+}
+var TODAY=getToday(); // locked for this session
+
+function fmtDate(ds){
+  var d=new Date(ds+'T12:00:00');
+  return DN[d.getDay()]+', '+d.getDate()+' '+MN[d.getMonth()]+' '+d.getFullYear();
+}
+function getPhaseRange(vidS,vidE){
+  var fd=SCH.find(function(s){return s.vs.some(function(v){return v.id===vidS;});});
+  var ld=[].concat(SCH).reverse().find(function(s){return s.vs.some(function(v){return v.id===vidE;});});
+  if(!fd||!ld)return'–';
+  var f=new Date(fd.ds+'T12:00:00'),l=new Date(ld.ds+'T12:00:00');
+  return MN[f.getMonth()].slice(0,3)+' '+f.getDate()+' – '+MN[l.getMonth()].slice(0,3)+' '+l.getDate();
+}
+
+// ─── PERSISTENT STATE (localStorage) ─────────────────────────────────────────
+var STORE_KEY='dsa_tracker_v2';
+function loadState(){
+  try{
+    var raw=localStorage.getItem(STORE_KEY);
+    if(!raw)return null;
+    return JSON.parse(raw);
+  }catch(e){return null;}
+}
+function saveState(){
+  var obj={
+    done:[...done],
+    potd:[...potd],
+    notes:notes,
+    tab:tab,
+    selDs:selDs,
+    calMo:calMo,
+    savedAt:new Date().toISOString()
+  };
+  try{localStorage.setItem(STORE_KEY,JSON.stringify(obj));}catch(e){}
+  flashSave();
+}
+function flashSave(){
+  var b=document.getElementById('save-badge');
+  if(!b)return;
+  b.classList.add('show');
+  clearTimeout(window._saveT);
+  window._saveT=setTimeout(function(){b.classList.remove('show');},1200);
+}
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+var saved=loadState();
+var done  = saved&&saved.done  ? new Set(saved.done)  : new Set();
+var potd  = saved&&saved.potd  ? new Set(saved.potd)  : new Set();
+var notes = saved&&saved.notes ? saved.notes : defaultNotes();
+var tab   = saved&&saved.tab   ? saved.tab   : 'dashboard';
+var selDs = saved&&saved.selDs ? saved.selDs : TODAY;
+var calMo = saved&&saved.calMo ? saved.calMo : getInitCalMo();
+
+function defaultNotes(){
+  return '# My 4-Month DSA Sprint — 15 LPA Target\nStarted: 14 March 2026 | End: 13 July 2026\n\n---\nDaily Routine\n- Mon-Sat: 4-5 Sanket videos (~8-10h) + LeetCode POTD (~45m)\n- Sunday: Full revision + 3-5 LeetCode (~4h)\n\n---\nPatterns Notebook\n\nArrays & Two Pointers:\n\nSliding Window:\n\nBinary Search:\n\nRecursion / Backtracking:\n\nTrees:\n\nGraphs:\n\nDP:\n\n---\nProblems to Revisit:\n\nMock Interview Log:\n\nCompanies Applied:\n';
+}
+function getInitCalMo(){
+  var d=new Date(TODAY+'T12:00:00');
+  var mos=[{y:2026,m:2},{y:2026,m:3},{y:2026,m:4},{y:2026,m:5},{y:2026,m:6}];
+  for(var i=0;i<mos.length;i++){if(mos[i].y===d.getFullYear()&&mos[i].m===d.getMonth())return i;}
+  return 0;
+}
+
+var pc=function(p){return PC[p-1]||PC[0];};
+
+// ─── STREAK CALC ──────────────────────────────────────────────────────────────
+function calcStreak(){
+  var streak=0,d=new Date(TODAY+'T12:00:00');
+  while(true){
+    var ds=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+    if(ds<START_DS)break;
+    var ent=SCH.find(function(s){return s.ds===ds;});
+    if(!ent)break;
+    if(ent.isR){d.setDate(d.getDate()-1);continue;}
+    var allVDone=ent.vs.length>0&&ent.vs.every(function(v){return done.has(v.id);});
+    var pDone=potd.has(ds);
+    if(allVDone||pDone){streak++;d.setDate(d.getDate()-1);}
+    else break;
+  }
+  return streak;
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────────────────
+var MONTHS=[
+  {y:2026,m:2,l:"March 2026"},{y:2026,m:3,l:"April 2026"},
+  {y:2026,m:4,l:"May 2026"},{y:2026,m:5,l:"June 2026"},{y:2026,m:6,l:"July 2026"},
+];
+
+function render(){
+  var todayE=SCH.find(function(s){return s.ds===TODAY;})||SCH[0];
+  var selE  =SCH.find(function(s){return s.ds===selDs;})||SCH[0];
+  var vDone =done.size, pct=Math.round(vDone/454*100);
+  var sm=new Date(START_DS+'T12:00:00'),now=new Date();
+  var elapsed=Math.max(0,Math.floor((now-sm)/86400000));
+  var remain =Math.max(0,TOTAL_DAYS-elapsed);
+  var streak =calcStreak();
+
+  // today completeness
+  var todayVsDone = todayE.vs.length>0 ? todayE.vs.filter(function(v){return done.has(v.id);}).length : 0;
+  var todayAllV   = todayE.vs.length>0 && todayVsDone===todayE.vs.length;
+  var todayPotd   = potd.has(TODAY);
+  var todayDayPct = todayE.vs.length>0 ? Math.round((todayVsDone/todayE.vs.length)*100) : (todayE.isR&&todayPotd?100:0);
+
+  var phProg=PHASES.map(function(ph){
+    var tot=ph.vidE-ph.vidS+1;
+    var dc=[...done].filter(function(v){return v>=ph.vidS&&v<=ph.vidE;}).length;
+    return {id:ph.id,n:ph.n,i:ph.i,c:ph.c,vidS:ph.vidS,vidE:ph.vidE,tot:tot,dc:dc,pct2:tot?Math.round(dc/tot*100):0,range:getPhaseRange(ph.vidS,ph.vidE)};
+  });
+
+  function calGrid(){
+    var cm=MONTHS[calMo];
+    var fd=new Date(cm.y,cm.m,1).getDay(),dim=new Date(cm.y,cm.m+1,0).getDate();
+    var g=[],w=Array(fd).fill(null);
+    for(var d=1;d<=dim;d++){
+      var ds=cm.y+'-'+pad(cm.m+1)+'-'+pad(d);
+      w.push({d:d,ds:ds,ent:SCH.find(function(s){return s.ds===ds;})});
+      if(w.length===7){g.push(w);w=[];}
+    }
+    if(w.length){while(w.length<7)w.push(null);g.push(w);}
+    return g;
+  }
+
+  var h='';
+
+  // ── HEADER
+  h+='<div class="hdr" style="max-width:1060px;margin:0 auto">';
+  h+='<div class="hdr-top">';
+  h+='<div><div style="font-size:18px;font-weight:800;color:#38BDF8">🎯 DSA 4-Month Tracker — 15 LPA Goal</div>';
+  h+='<div style="color:#64748B;font-size:11px;margin-top:2px">Sanket Singh · 454 Videos · 122 Days · Mar 14 → Jul 13, 2026</div></div>';
+  h+='<div style="text-align:right"><div style="font-size:28px;font-weight:900;color:#38BDF8;line-height:1">'+pct+'%</div><div style="color:#64748B;font-size:11px">Complete</div></div></div>';
+  h+='<div class="prog-bar"><div class="prog-fill" style="width:'+pct+'%"></div></div>';
+  h+='<div style="display:flex;justify-content:space-between;font-size:11px;color:#64748B;margin-top:4px">';
+  h+='<span>'+vDone+'/454 videos · '+potd.size+' POTD done · 🔥 '+streak+' day streak</span>';
+  h+='<span>Day '+elapsed+'/122 · '+remain+' days left</span></div></div>';
+
+  // ── STAT CARDS
+  h+='<div class="stats">';
+  [['Videos',vDone,'/ 454',PC[0]],['POTD',potd.size,'solved',PC[2]],['Days In',elapsed,'/ 122',PC[1]],['Days Left',remain,'remaining',PC[3]],['Streak','🔥 '+streak,'day'+( streak!==1?'s':''),'#FB923C']].forEach(function(x){
+    h+='<div class="stat"><div style="color:#64748B;font-size:10px;margin-bottom:2px">'+x[0]+'</div><div style="font-size:20px;font-weight:800;color:'+x[3]+';line-height:1.2">'+x[1]+'</div><div style="color:#64748B;font-size:11px">'+x[2]+'</div></div>';
+  });
+  h+='</div>';
+
+  // ── TABS
+  h+='<div class="tabs" style="max-width:1060px;margin:0 auto">';
+  ['dashboard','schedule','daily','notes'].forEach(function(t,i){
+    h+='<button class="tab'+(tab===t?' on':'')+'" onclick="setTab(\''+t+'\')">'+['📊 Dashboard','📅 Calendar','✅ Daily','📝 Notes'][i]+'</button>';
+  });
+  h+='</div><div class="content">';
+
+  // ════════════════════════════════════════════
+  // DASHBOARD
+  // ════════════════════════════════════════════
+  if(tab==='dashboard'){
+
+    // TODAY BLOCK — live date, progress ring, tasks
+    h+='<div class="card" style="border:2px solid '+PC[0]+'40;margin-bottom:12px">';
+    h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">';
+    h+='<div>';
+    h+='<div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em">TODAY</div>';
+    h+='<div style="font-size:17px;font-weight:800;color:#38BDF8;margin-top:2px">'+fmtDate(TODAY)+'</div>';
+    h+='<div style="font-size:11px;color:#64748B;margin-top:2px">Day '+todayE.day+' / 122 · Phase '+todayE.phase+' — '+PHASES[todayE.phase-1].n+'</div>';
+    h+='</div>';
+    // circle progress
+    var r2=26,circ=2*Math.PI*r2,dash=circ*(todayDayPct/100);
+    h+='<div style="position:relative;width:70px;height:70px;flex-shrink:0">';
+    h+='<svg width="70" height="70" style="transform:rotate(-90deg)">';
+    h+='<circle cx="35" cy="35" r="'+r2+'" fill="none" stroke="#1A2640" stroke-width="5"/>';
+    h+='<circle cx="35" cy="35" r="'+r2+'" fill="none" stroke="'+(todayDayPct===100?'#34D399':PC[0])+'" stroke-width="5" stroke-dasharray="'+dash+' '+circ+'" stroke-linecap="round" style="transition:stroke-dasharray .5s"/>';
+    h+='</svg>';
+    h+='<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">';
+    h+='<div style="font-size:15px;font-weight:800;color:'+(todayDayPct===100?'#34D399':PC[0])+'">'+todayDayPct+'%</div>';
+    h+='<div style="font-size:9px;color:#64748B">today</div></div></div></div>';
+
+    if(todayE.isR){
+      h+='<div style="padding:12px;background:#FBBF2412;border:1px solid #FBBF2430;border-radius:8px;color:#FBBF24;font-weight:600;margin-bottom:8px">🔄 Sunday Revision Day — Review + 3–5 LeetCode (~4h)</div>';
+      var spd=potd.has(TODAY);
+      h+='<div class="vid'+(spd?' done':'')+'" style="'+(spd?'border-color:#FBBF24;background:#FBBF2410':'')+'" onclick="togglePotd(\''+TODAY+'\')">';
+      h+='<input type="checkbox"'+(spd?' checked':'')+' onclick="event.stopPropagation();togglePotd(\''+TODAY+'\')" style="accent-color:#FBBF24">';
+      h+='<span style="flex:1;font-size:13px;font-weight:600;color:'+(spd?'#FBBF24':'#E2E8F0')+'">✅ Marked Sunday Revision Complete</span></div>';
+    } else {
+      todayE.vs.forEach(function(v){
+        var d=done.has(v.id),c=pc(v.sec.p);
+        h+='<div class="vid'+(d?' done':'')+'" style="'+(d?'border-color:'+c+'88;background:'+c+'08':'')+'" onclick="toggleVid('+v.id+')">';
+        h+='<input type="checkbox"'+(d?' checked':'')+' onclick="event.stopPropagation();toggleVid('+v.id+')" style="accent-color:'+c+'">';
+        h+='<div style="flex:1">';
+        h+='<div style="font-size:10px;color:'+c+';font-weight:700;margin-bottom:2px">'+v.sec.i+' ['+v.id+'] '+v.sec.t.slice(0,28)+'</div>';
+        h+='<div style="font-size:13px;font-weight:600;'+(d?'color:#64748B;text-decoration:line-through':'color:#E2E8F0')+'">'+gt(v.id)+'</div></div>';
+        h+='<div style="text-align:center;font-size:18px">'+(d?'✅':'⬜')+'</div></div>';
+      });
+      var pd=potd.has(TODAY);
+      h+='<div class="vid'+(pd?' done':'')+'" style="'+(pd?'border-color:#34D399;background:#34D39908':'')+'" onclick="togglePotd(\''+TODAY+'\')">';
+      h+='<input type="checkbox"'+(pd?' checked':'')+' onclick="event.stopPropagation();togglePotd(\''+TODAY+'\')" style="accent-color:#34D399">';
+      h+='<div style="flex:1"><div style="font-size:13px;font-weight:700;color:'+(pd?'#34D399':'#E2E8F0')+'">🎯 LeetCode Problem of the Day</div>';
+      h+='<div style="font-size:11px;color:#64748B">leetcode.com/problemset/ · Note the pattern</div></div>';
+      h+='<div style="text-align:center;font-size:18px">'+(pd?'✅':'⬜')+'</div></div>';
+
+      // mini progress bar
+      h+='<div style="margin-top:10px;padding:10px 12px;background:#101828;border-radius:8px;display:flex;align-items:center;gap:10px">';
+      h+='<span style="font-size:11px;color:#64748B;min-width:80px">Today '+todayVsDone+'/'+todayE.vs.length+' vids'+(pd?' + POTD':'')+'</span>';
+      h+='<div style="flex:1;height:6px;background:#1A2640;border-radius:3px;overflow:hidden"><div style="height:100%;width:'+todayDayPct+'%;background:'+(todayDayPct===100?'#34D399':PC[0])+';border-radius:3px;transition:width .3s"></div></div>';
+      h+='<span style="font-size:12px;font-weight:700;color:'+(todayDayPct===100?'#34D399':PC[0])+'">'+todayDayPct+'%</span></div>';
+    }
+    h+='</div>';
+
+    // PHASE ROADMAP
+    h+='<div style="font-weight:700;font-size:14px;margin-bottom:8px">🗺️ 4-Phase Roadmap</div>';
+    h+='<div class="phases" style="margin-bottom:12px">';
+    phProg.forEach(function(pp){
+      var isCur=todayE.vs.length>0&&todayE.vs[0].sec.p===pp.id;
+      h+='<div style="background:#0C1024;border:1px solid '+pp.c+(isCur?';outline:1.5px solid '+pp.c:'')+'30;border-radius:10px;padding:14px;position:relative">';
+      if(isCur)h+='<div style="position:absolute;top:10px;right:10px;background:'+pp.c+'22;color:'+pp.c+';font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px">ACTIVE</div>';
+      h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">';
+      h+='<div><div style="font-size:11px;font-weight:700;color:'+pp.c+'">'+pp.i+' Phase '+pp.id+'</div>';
+      h+='<div style="font-size:13px;font-weight:700;margin-top:2px">'+pp.n+'</div>';
+      h+='<div style="font-size:10px;color:#64748B;margin-top:1px">'+pp.range+'</div>';
+      h+='<div style="font-size:10px;color:#64748B">Videos '+pp.vidS+'–'+pp.vidE+'</div></div>';
+      h+='<div style="font-size:22px;font-weight:800;color:'+pp.c+'">'+pp.pct2+'%</div></div>';
+      h+='<div class="mini-bar"><div class="mini-fill" style="width:'+pp.pct2+'%;background:'+pp.c+'"></div></div>';
+      h+='<div style="font-size:10px;color:#64748B;margin-top:4px">'+pp.dc+'/'+pp.tot+' videos done</div></div>';
+    });
+    h+='</div>';
+
+    // SECTIONS + SCHEDULE
+    h+='<div class="grid2">';
+    h+='<div class="card"><div style="font-weight:700;font-size:13px;margin-bottom:10px">📋 All 35 Sections</div>';
+    h+='<div class="sec-list">';
+    SECS.forEach(function(sec){
+      var cnt=sec.e-sec.s+1;
+      var dc=[...done].filter(function(v){return v>=sec.s&&v<=sec.e;}).length;
+      var sp=Math.round(dc/cnt*100),c=pc(sec.p),fin=sp===100;
+      h+='<div class="sec-item" style="'+(fin?'background:'+c+'10;border-color:'+c+'40':'')+'">';
+      h+='<span>'+sec.i+'</span>';
+      h+='<span style="flex:1;'+(fin?'color:'+c:'')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+sec.t+'">'+sec.t+'</span>';
+      h+='<span style="color:#64748B;min-width:36px;text-align:right">'+dc+'/'+cnt+'</span>';
+      h+='<div style="width:32px;height:3px;background:#1A2640;border-radius:2px;flex-shrink:0"><div style="height:100%;width:'+sp+'%;background:'+c+';border-radius:2px"></div></div></div>';
+    });
+    h+='</div></div><div>';
+    h+='<div class="card"><div style="font-weight:700;font-size:13px;margin-bottom:8px">📅 Daily Schedule</div>';
+    [['Mon–Sat','4–5 videos (~8–10h) + POTD (~45m)',PC[0]],['Sunday','Revision + 3–5 LeetCode (~4h)',PC[1]],['Weekly','~27 videos + 7 POTD',PC[2]],['Monthly','~114 videos + 30 POTD',PC[3]]].forEach(function(x){
+      h+='<div style="display:flex;gap:8px;margin-bottom:5px;padding:7px 10px;background:#101828;border-radius:6px;align-items:center">';
+      h+='<span style="font-weight:700;color:'+x[2]+';min-width:65px;font-size:11px">'+x[0]+'</span>';
+      h+='<span style="font-size:12px;color:#64748B">'+x[1]+'</span></div>';
+    });
+    h+='</div>';
+    h+='<div class="card"><div style="font-weight:700;font-size:13px;margin-bottom:8px;color:#34D399">💼 Sprint Milestones</div>';
+    [['March','Arrays, Recursion, Complexity'],['April','Binary Search, Sorting, LL, Stacks'],['May','Trees, Heaps, Graphs, DP'],['June','Greedy, LLD, HLD, start DBMS'],['July','DBMS, SQL, CN + Mock interviews'],['Jul 13','🎯 Target: Offer secured!']].forEach(function(x,i){
+      h+='<div style="font-size:11px;color:#64748B;padding:4px 0;'+(i<5?'border-bottom:1px solid #1A2640':'')+'"><span style="color:'+PC[i%4]+';font-weight:700">'+x[0]+': </span>'+x[1]+'</div>';
+    });
+    h+='</div></div></div>';
+  }
+
+  // ════════════════════════════════════════════
+  // CALENDAR
+  // ════════════════════════════════════════════
+  if(tab==='schedule'){
+    var cm=MONTHS[calMo];
+    h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">';
+    h+='<button class="btn" onclick="prevMo()">‹</button>';
+    h+='<div style="flex:1;text-align:center;font-weight:700;font-size:16px">'+cm.l+'</div>';
+    h+='<button class="btn" onclick="nextMo()">›</button></div>';
+    h+='<div class="card" style="padding:0;overflow:hidden;margin-bottom:12px"><div class="cal">';
+    DN.forEach(function(d,i){h+='<div class="cal-h" style="color:'+(i===0?PC[1]:'#64748B')+'">'+d+'</div>';});
+    calGrid().forEach(function(week){
+      week.forEach(function(cell){
+        if(!cell){h+='<div class="cell rest"></div>';return;}
+        var d=cell.d,ds=cell.ds,ent=cell.ent;
+        var isT=ds===TODAY,isSel=ds===selDs;
+        var c=ent?pc(ent.phase):'#64748B';
+        var vd=ent?ent.vs.filter(function(v){return done.has(v.id);}).length:0;
+        var allD=ent&&!ent.isR&&ent.vs.length>0&&vd===ent.vs.length;
+        var oor=ds<START_DS||ds>END_DS;
+        h+='<div class="cell'+(isT?' today':'')+(isSel&&!isT?' sel':'')+(oor?' rest':'')+'" '+(oor?'':'onclick="selectDay(\''+ds+'\')"')+'>';
+        h+='<div style="font-weight:'+(isT?800:500)+';color:'+(isT?'#38BDF8':oor?'#334155':'#E2E8F0')+';font-size:13px;margin-bottom:2px">'+d+(isT?'<span style="font-size:8px;color:#38BDF8;margin-left:2px">●</span>':'')+'</div>';
+        if(ent&&ent.isR)h+='<div style="font-size:10px;color:'+PC[1]+';font-weight:600">🔄 Rev</div>';
+        if(ent&&!ent.isR&&ent.vs.length>0){
+          h+='<div style="font-size:10px;color:'+c+';font-weight:600">'+(allD?'✅':'📺')+' '+ent.vs.length+'v</div>';
+          h+='<div style="font-size:9px;color:#64748B">['+ent.vs[0].id+'–'+ent.vs[ent.vs.length-1].id+']</div>';
+          if(potd.has(ds))h+='<div style="font-size:9px;color:#34D399">✅ POTD</div>';
+        }else if(!ent&&!oor)h+='<div style="font-size:9px;color:#64748B">–</div>';
+        h+='</div>';
+      });
+    });
+    h+='</div></div>';
+    var moE=SCH.filter(function(s){var d=new Date(s.ds+'T12:00:00');return d.getFullYear()===cm.y&&d.getMonth()===cm.m;});
+    var stD=moE.filter(function(e){return !e.isR&&e.vs.length>0;}).length;
+    var revD=moE.filter(function(e){return e.isR;}).length;
+    var totV=moE.reduce(function(a,e){return a+e.vs.length;},0);
+    var dV=moE.reduce(function(a,e){return a+e.vs.filter(function(v){return done.has(v.id);}).length;},0);
+    h+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">';
+    [['Study Days',stD,PC[0]],['Rev Days',revD,PC[1]],['Planned',totV+' vids',PC[2]],['Done',dV+' vids','#34D399']].forEach(function(x){
+      h+='<div style="background:#0C1024;border:1px solid #1A2640;border-radius:8px;padding:10px;text-align:center"><div style="font-size:10px;color:#64748B;margin-bottom:3px">'+x[0]+'</div><div style="font-size:18px;font-weight:700;color:'+x[2]+'">'+x[1]+'</div></div>';
+    });
+    h+='</div>';
+    h+='<div style="display:flex;gap:12px;flex-wrap:wrap">';
+    PHASES.forEach(function(p){h+='<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#64748B"><div style="width:8px;height:8px;border-radius:50%;background:'+p.c+'"></div>'+p.i+' '+p.n+'</div>';});
+    h+='<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#64748B"><div style="width:8px;height:8px;border-radius:50%;background:'+PC[1]+'"></div>🔄 Revision</div></div>';
+  }
+
+  // ════════════════════════════════════════════
+  // DAILY TRACKER
+  // ════════════════════════════════════════════
+  if(tab==='daily'){
+    h+='<div class="nav-bar">';
+    h+='<button class="btn" onclick="navDay(-1)" style="font-size:17px;padding:5px 14px">‹</button>';
+    h+='<div style="flex:1;text-align:center">';
+    h+='<div style="font-weight:700;font-size:15px">'+fmtDate(selDs)+'</div>';
+    h+='<div style="font-size:11px;color:#64748B">Day '+selE.day+'/122 '+(selE.isR?'· 🔄 Revision Sunday':'· Phase '+selE.phase+' — '+PHASES[selE.phase-1].n)+'</div></div>';
+    h+='<button class="btn" onclick="navDay(1)" style="font-size:17px;padding:5px 14px">›</button>';
+    h+='<button onclick="gotoToday()" style="background:'+PC[0]+'20;border:1px solid '+PC[0]+'40;color:'+PC[0]+';padding:5px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700">Today</button></div>';
+
+    if(selE.isR){
+      h+='<div style="background:#FBBF2408;border:1px solid #FBBF2425;border-radius:12px;padding:18px">';
+      h+='<div style="font-weight:800;font-size:14px;color:#FBBF24;margin-bottom:10px">🔄 Sunday Revision Day</div>';
+      ['Review all topics from this week','Solve 3–5 LeetCode on this week\'s topics','Re-watch any video you struggled with','Update your notes with key patterns','Plan your schedule for the coming week'].forEach(function(item,i){
+        h+='<div style="display:flex;gap:10px;padding:8px 12px;background:#0C1024;border-radius:7px;font-size:12px;margin-bottom:5px"><span style="color:#FBBF24;font-weight:700">'+(i+1)+'.</span><span style="color:#64748B">'+item+'</span></div>';
+      });
+      var spd=potd.has(selDs);
+      h+='<div class="vid'+(spd?' done':'')+'" style="'+(spd?'border-color:#FBBF24;background:#FBBF2410':'')+';margin-top:10px" onclick="togglePotd(\''+selDs+'\')">';
+      h+='<input type="checkbox"'+(spd?' checked':'')+' onclick="event.stopPropagation();togglePotd(\''+selDs+'\')" style="accent-color:#FBBF24">';
+      h+='<span style="font-size:13px;font-weight:600;color:'+(spd?'#FBBF24':'#E2E8F0')+'">✅ Completed Sunday Revision</span>';
+      h+='<span style="margin-left:auto;font-size:18px">'+(spd?'✅':'⬜')+'</span></div></div>';
+    } else if(selE.vs.length===0){
+      h+='<div style="text-align:center;padding:40px;color:#64748B">No videos scheduled for this date.</div>';
+    } else {
+      var c2=pc(selE.phase);
+      var doneCount=selE.vs.filter(function(v){return done.has(v.id);}).length;
+      var dayPct=Math.round((doneCount/selE.vs.length)*100);
+      h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">';
+      h+='<div style="padding:3px 12px;border-radius:20px;background:'+c2+'15;border:1px solid '+c2+'30;font-size:12px;font-weight:700;color:'+c2+'">'+PHASES[selE.phase-1].i+' '+PHASES[selE.phase-1].n+'</div>';
+      h+='<div style="font-size:11px;color:#64748B">Est. '+(selE.vs.length*2)+'h+ videos + 45m POTD</div>';
+      h+='<div style="margin-left:auto;font-size:12px;font-weight:700;color:'+(dayPct===100?'#34D399':c2)+'">'+doneCount+'/'+selE.vs.length+' done</div></div>';
+
+      selE.vs.forEach(function(v){
+        var d=done.has(v.id),vc=pc(v.sec.p);
+        h+='<div class="vid'+(d?' done':'')+'" style="'+(d?'border-color:'+vc+'88;background:'+vc+'08':'')+'" onclick="toggleVid('+v.id+')">';
+        h+='<input type="checkbox"'+(d?' checked':'')+' onclick="event.stopPropagation();toggleVid('+v.id+')" style="accent-color:'+vc+'">';
+        h+='<div style="flex:1"><div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">';
+        h+='<span style="background:'+vc+'20;color:'+vc+';font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px">Video ['+v.id+']</span>';
+        h+='<span style="font-size:11px;color:#64748B">'+v.sec.i+' '+(v.sec.t.length>35?v.sec.t.slice(0,33)+'…':v.sec.t)+'</span></div>';
+        h+='<div style="font-weight:600;font-size:13px;'+(d?'color:#64748B;text-decoration:line-through':'color:#E2E8F0')+'">'+gt(v.id)+'</div></div>';
+        h+='<div style="font-size:18px">'+(d?'✅':'⬜')+'</div></div>';
+      });
+      var pd2=potd.has(selDs);
+      h+='<div class="vid'+(pd2?' done':'')+'" style="'+(pd2?'border-color:#34D399;background:#34D39908':'')+'" onclick="togglePotd(\''+selDs+'\')">';
+      h+='<input type="checkbox"'+(pd2?' checked':'')+' onclick="event.stopPropagation();togglePotd(\''+selDs+'\')" style="accent-color:#34D399">';
+      h+='<div style="flex:1"><div style="font-weight:700;font-size:13px;color:'+(pd2?'#34D399':'#E2E8F0')+'">🎯 LeetCode Problem of the Day</div>';
+      h+='<div style="font-size:12px;color:#64748B;margin-top:2px">leetcode.com/problemset/ · Note the pattern</div></div>';
+      h+='<div style="font-size:18px">'+(pd2?'✅':'⬜')+'</div></div>';
+
+      // day summary
+      var allVDone2=doneCount===selE.vs.length;
+      h+='<div style="margin-top:8px;padding:12px;background:#101828;border-radius:8px;border:1px solid '+(allVDone2&&pd2?'#34D39940':'#1A2640')+'">';
+      h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">';
+      h+='<span style="font-size:12px;font-weight:700;color:#64748B">Day Progress</span>';
+      h+='<span style="font-size:12px;font-weight:700;color:'+(allVDone2?'#34D399':c2)+'">'+dayPct+'%'+(allVDone2&&pd2?' 🎉':'')+'</span></div>';
+      h+='<div style="height:6px;background:#1A2640;border-radius:3px;overflow:hidden"><div style="height:100%;width:'+dayPct+'%;background:'+(dayPct===100?'#34D399':c2)+';border-radius:3px;transition:width .3s"></div></div>';
+      h+='<div style="display:flex;gap:16px;margin-top:8px">';
+      [['Videos',doneCount+'/'+selE.vs.length,c2],['POTD',pd2?'Done ✅':'Pending',pd2?'#34D399':'#64748B'],['Est.',selE.vs.length*2+'h + 45m',PC[1]]].forEach(function(x){
+        h+='<div style="text-align:center"><div style="font-size:10px;color:#64748B">'+x[0]+'</div><div style="font-size:13px;font-weight:700;color:'+x[2]+'">'+x[1]+'</div></div>';
+      });
+      h+='</div></div>';
+    }
+  }
+
+  // ════════════════════════════════════════════
+  // NOTES
+  // ════════════════════════════════════════════
+  if(tab==='notes'){
+    h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">';
+    h+='<div style="font-weight:700;font-size:15px">📝 Study Notes & Journal</div>';
+    h+='<div style="font-size:11px;color:#64748B">Auto-saved · '+notes.length+' chars</div></div>';
+    h+='<textarea id="notes-ta" oninput="notesChange(this.value)">'+notes.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</textarea>';
+    h+='<div class="grid2" style="margin-top:12px">';
+    h+='<div class="card"><div style="font-weight:700;font-size:13px;margin-bottom:8px">🔗 Quick Resources</div>';
+    [['LeetCode POTD','leetcode.com',PC[1]],['NeetCode','neetcode.io',PC[0]],['Striver A2Z','takeuforward.org','#34D399'],['CP Algorithms','cp-algorithms.com',PC[2]],['System Design','systemdesign.one',PC[3]],['InterviewBit','interviewbit.com','#F87171']].forEach(function(x){
+      h+='<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #1A2640;font-size:12px"><span style="color:'+x[2]+';font-weight:600">'+x[0]+'</span><span style="color:#64748B;font-size:11px">'+x[1]+'</span></div>';
+    });
+    h+='</div><div class="card"><div style="font-weight:700;font-size:13px;margin-bottom:8px">🏷️ Month Targets</div>';
+    [['March','Arrays, Recursion, Complexity'],['April','Binary Search, Sorting, LL, Stacks'],['May','Trees, Heaps, Graphs, DP'],['June','Greedy, LLD, HLD, start DBMS'],['July','DBMS, SQL, CN + Mock interviews'],['Jul 13','🎯 Offer secured!']].forEach(function(x,i){
+      h+='<div style="font-size:12px;padding:5px 0;'+(i<5?'border-bottom:1px solid #1A2640':'')+'"><span style="color:'+PC[i%4]+';font-weight:700">'+x[0]+': </span><span style="color:#64748B">'+x[1]+'</span></div>';
+    });
+    h+='</div></div>';
+
+    // Reset button
+    h+='<div style="margin-top:16px;padding:14px;background:#0C1024;border:1px solid #F8717130;border-radius:10px;display:flex;justify-content:space-between;align-items:center">';
+    h+='<div><div style="font-weight:700;font-size:13px;color:#F87171">⚠️ Reset All Progress</div><div style="font-size:11px;color:#64748B;margin-top:2px">Clears all checkboxes and POTD — cannot be undone</div></div>';
+    h+='<button onclick="resetAll()" style="background:#F8717120;border:1px solid #F87171;color:#F87171;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">Reset</button></div>';
+  }
+
+  h+='</div>';
+  document.getElementById('app').innerHTML=h;
+}
+
+// ─── ACTIONS ─────────────────────────────────────────────────────────────────
+window.setTab=function(t){tab=t;saveState();render();};
+window.toggleVid=function(id){done.has(id)?done.delete(id):done.add(id);saveState();render();};
+window.togglePotd=function(ds){potd.has(ds)?potd.delete(ds):potd.add(ds);saveState();render();};
+window.selectDay=function(ds){selDs=ds;tab='daily';saveState();render();};
+window.prevMo=function(){calMo=Math.max(0,calMo-1);saveState();render();};
+window.nextMo=function(){calMo=Math.min(MONTHS.length-1,calMo+1);saveState();render();};
+window.navDay=function(dir){
+  var idx=SCH.findIndex(function(s){return s.ds===selDs;});
+  selDs=SCH[Math.max(0,Math.min(TOTAL_DAYS-1,idx+dir))].ds;
+  saveState();render();
+};
+window.gotoToday=function(){selDs=TODAY;saveState();render();};
+window.notesChange=function(v){notes=v;saveState();};
+window.resetAll=function(){
+  if(!confirm('Reset ALL progress? This cannot be undone.'))return;
+  done=new Set();potd=new Set();saveState();render();
+};
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+render();
+
+// Refresh TODAY at midnight without losing state
+var msToMidnight=(function(){
+  var n=new Date(),m=new Date(n);
+  m.setHours(24,0,0,0);return m-n;
+})();
+setTimeout(function(){TODAY=getToday();render();},msToMidnight);
+</script>
+</body>
+</html>
+
+
+
+
+
+
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DSA 180-Day Tracker — 15 LPA Goal</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -442,4 +1006,4 @@ window.notesChange=v=>{notes=v;};
 render();
 </script>
 </body>
-</html>
+</html> -->
